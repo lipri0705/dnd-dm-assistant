@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { countBuildings, db, deleteMarker, listCities, moveToCity, type MarkerRecord } from '../db'
+import { countBuildings, db, deleteMarker, getMap, listCities, moveCharacter, type MarkerRecord } from '../db'
 
 interface Props {
   marker: MarkerRecord
@@ -10,6 +10,9 @@ interface Props {
 }
 
 type TextField = 'label' | 'type' | 'description'
+
+const KIND_NAMES: Record<MarkerRecord['kind'], string> = { city: 'City', building: 'Building', character: 'Character' }
+const WORLD = 'world' // <select> value for the world map
 
 // Parent keys this by marker id, so local state resets when the selection changes.
 export default function MarkerPanel({ marker, currentCityId, onClose, onOpenCity }: Props) {
@@ -22,6 +25,9 @@ export default function MarkerPanel({ marker, currentCityId, onClose, onOpenCity
   const isCity = marker.kind === 'city'
   const buildingCount = useLiveQuery(() => (isCity ? countBuildings(marker.id) : 0), [marker.id])
   const cities = useLiveQuery(() => (marker.kind === 'character' ? listCities() : []), [marker.kind])
+  // A city with its own map can't become a character, or its map would be orphaned.
+  const hasCityMap = useLiveQuery(() => (isCity ? getMap(marker.id).then(Boolean) : false), [marker.id, isCity])
+  const kinds = currentCityId === null ? (['city', 'character'] as const) : (['building', 'character'] as const)
 
   const onFieldChange = (field: TextField) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFields((f) => ({ ...f, [field]: e.target.value }))
@@ -29,7 +35,7 @@ export default function MarkerPanel({ marker, currentCityId, onClose, onOpenCity
   }
 
   const onMove = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    await moveToCity(marker.id, Number(e.target.value))
+    await moveCharacter(marker.id, e.target.value === WORLD ? null : Number(e.target.value))
     onClose() // the marker has left this map
   }
 
@@ -42,19 +48,19 @@ export default function MarkerPanel({ marker, currentCityId, onClose, onOpenCity
 
   return (
     <aside className="panel" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
-      {!isCity && (
-        <div className="segmented">
-          {(['building', 'character'] as const).map((kind) => (
-            <button
-              key={kind}
-              className={marker.kind === kind ? 'active' : ''}
-              onClick={() => db.markers.update(marker.id, { kind })}
-            >
-              {kind === 'building' ? 'Building' : 'Character'}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="segmented">
+        {kinds.map((kind) => (
+          <button
+            key={kind}
+            className={marker.kind === kind ? 'active' : ''}
+            disabled={kind === 'character' && hasCityMap !== false}
+            title={kind === 'character' && hasCityMap ? 'This city has its own map' : undefined}
+            onClick={() => db.markers.update(marker.id, { kind })}
+          >
+            {KIND_NAMES[kind]}
+          </button>
+        ))}
+      </div>
       <label>
         Name
         <input
@@ -83,8 +89,9 @@ export default function MarkerPanel({ marker, currentCityId, onClose, onOpenCity
       )}
       {marker.kind === 'character' && cities && (
         <label>
-          City
-          <select value={currentCityId ?? ''} onChange={onMove}>
+          Location
+          <select value={currentCityId ?? WORLD} onChange={onMove}>
+            <option value={WORLD}>World map (travelling)</option>
             {cities.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.label || 'Unnamed city'}

@@ -84,12 +84,17 @@ export async function countBuildings(cityId: number) {
     .count()
 }
 
-// Moves a marker to another city's map, keeping its relative position. Creates a blank map if the city has none.
-export function moveToCity(markerId: number, cityId: number) {
+// Moves a character to a city's map (cityId) or to the world map (null), keeping its relative position.
+// Creates a blank map if the target has none.
+export function moveCharacter(markerId: number, cityId: number | null) {
   return db.transaction('rw', db.maps, db.markers, async () => {
     const mapId =
       (await getMap(cityId))?.id ??
-      (await db.maps.add({ kind: 'city', cityId, name: '', ...BLANK_SIZE }))
+      (await db.maps.add(
+        cityId === null
+          ? { kind: 'world', name: 'World', ...BLANK_SIZE }
+          : { kind: 'city', cityId, name: '', ...BLANK_SIZE },
+      ))
     await db.markers.update(markerId, { mapId })
   })
 }
