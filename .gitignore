@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Private project docs — kept locally, not published
+docs/charter.md
+*.docx
