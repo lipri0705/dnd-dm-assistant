@@ -29,10 +29,10 @@ export default function App() {
   // null = world map is shown, otherwise the id of the open city's marker
   const [cityId, setCityId] = useState<number | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
-  // Ask Chrome not to evict our data under storage pressure. false = request denied.
-  const [persistent, setPersistent] = useState<boolean>()
+  // Ask Chrome not to evict our data when the disk is low. Chrome decides silently (no prompt);
+  // data stays local either way, so the result isn't shown.
   useEffect(() => {
-    navigator.storage?.persist?.().then(setPersistent, () => setPersistent(false))
+    navigator.storage?.persist?.().catch(() => {})
   }, [])
 
   // null = no map yet, undefined = still loading
@@ -77,11 +77,6 @@ export default function App() {
           <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={onFile} />
         </label>
         <button onClick={() => saveBackground(cityId)}>Blank canvas</button>
-        {persistent === false && (
-          <span className="warning" title="Chrome may delete saved maps and records if the disk runs low on space.">
-            ⚠ Storage not persistent
-          </span>
-        )}
         {map && (
           <span className="hint">
             Double-click the map to add a {map.kind === 'world' ? 'city' : 'marker'} · drag to move · click to edit

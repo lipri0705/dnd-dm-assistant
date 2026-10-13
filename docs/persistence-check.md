@@ -24,13 +24,13 @@ Build a small campaign first:
 | 6 | Move a character City 1 → world → City 2, then reload | Character is on City 2 at the same relative position | |
 | 7 | Replace City 1's PNG with a different-size image, then reload | Markers keep their relative positions | |
 | 8 | Delete City 2, then reload | City 2 and its map are gone; other cities untouched | |
-| 9 | Toolbar has no "⚠ Storage not persistent" warning | No warning (Chrome granted persistent storage) | |
+| 9 | DevTools console: `await navigator.storage.persisted()` | Informational only: `true` = Chrome protects the data from eviction; `false` is normal for a new/localhost site | |
 | 10 | DevTools → Application → IndexedDB → `dnd-dm` | `maps` holds Blobs, `markers` has x/y between 0 and 1 | |
 
 ## Known limitations (local-only storage)
 - Data lives only in this Chrome profile on this device. "Clear browsing data → Cookies and site data", a different browser or another device means no data.
 - No backup yet. Export/backup is a charter stretch goal; see the decision after M4.
-- If Chrome denies persistent storage (check 9), it may evict data when the disk is nearly full.
+- Chrome grants "persistent" storage silently (no prompt). Without it, Chrome may evict data only when the disk is nearly full.
 
 ## Result
 M4 passed: yes / no. Notes:
