@@ -26,10 +26,13 @@ Build a small campaign first:
 | 8 | Delete City 2, then reload | City 2 and its map are gone; other cities untouched | |
 | 9 | DevTools console: `await navigator.storage.persisted()` | Informational only: `true` = Chrome protects the data from eviction; `false` is normal for a new/localhost site | |
 | 10 | DevTools → Application → IndexedDB → `dnd-dm` | `maps` holds Blobs, `markers` has x/y between 0 and 1 | |
+| 11 | Export → a `dnd-campaign-<date>.json` file downloads | File size roughly matches the images used | |
+| 12 | Add a junk city, then Import the file from 11 | Junk city gone; everything from the setup is back, images included | |
 
 ## Known limitations (local-only storage)
 - Data lives only in this Chrome profile on this device. "Clear browsing data → Cookies and site data", a different browser or another device means no data.
-- No backup yet. Export/backup is a charter stretch goal; see the decision after M4.
+- Backup is manual: use Export regularly and keep the file somewhere safe. Import replaces the whole campaign.
+- Data is tied to the site address: a campaign made on `localhost` won't appear on a hosted URL until imported there.
 - Chrome grants "persistent" storage silently (no prompt). Without it, Chrome may evict data only when the disk is nearly full.
 
 ## Result

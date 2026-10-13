@@ -20,7 +20,8 @@ Deadline **12 Nov 2026**, ~20–22 dev hours total. Source of truth for scope an
 - Positions are relative to image size (`x`, `y` in 0–1), never pixels
 
 ## Folders
-- `src/db.ts`: Dexie schema and types
+- `src/db.ts`: Dexie schema, types and data helpers
+- `src/backup.ts`: JSON export/import of the whole campaign (images as data URLs)
 - `src/components/`: React components (canvas, markers, panels)
 - `docs/`: charter and notes
 
@@ -45,4 +46,4 @@ Deadline **12 Nov 2026**, ~20–22 dev hours total. Source of truth for scope an
 - Google Sheets integration
 - Production-grade backup, disaster recovery, cloud availability
 
-Stretch goals only after M4 is done: tavern/legendary-drink details, simple export/backup, a small AI feature.
+Stretch goals (after M4): export/backup — done; tavern/legendary-drink details and a small AI feature only if time allows.

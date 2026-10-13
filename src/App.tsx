@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { BLANK_SIZE, db, getMap } from './db'
+import { downloadBlob, exportCampaign, importCampaign } from './backup'
 import MapCanvas from './components/MapCanvas'
 import MarkerPanel from './components/MarkerPanel'
 
@@ -58,6 +59,23 @@ export default function App() {
     saveBackground(cityId, file).catch((err) => alert(`Could not load image: ${err}`))
   }
 
+  const onExport = async () => {
+    const date = new Date().toISOString().slice(0, 10)
+    downloadBlob(await exportCampaign(), `dnd-campaign-${date}.json`)
+  }
+
+  const onImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !confirm('Replace the whole current campaign with this backup? This cannot be undone.')) return
+    try {
+      await importCampaign(file)
+      openCity(null)
+    } catch (err) {
+      alert(`Could not import: ${err instanceof Error ? err.message : err}`)
+    }
+  }
+
   const placeName = cityId === null ? 'the world' : city?.label || 'this city'
 
   return (
@@ -77,6 +95,15 @@ export default function App() {
           <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={onFile} />
         </label>
         <button onClick={() => saveBackground(cityId)}>Blank canvas</button>
+        <span className="toolbar-right">
+          <button onClick={onExport} title="Download the whole campaign (maps, images, records) as one file">
+            Export
+          </button>
+          <label className="button" title="Replace the current campaign with a backup file">
+            Import
+            <input type="file" accept="application/json,.json" hidden onChange={onImport} />
+          </label>
+        </span>
         {map && (
           <span className="hint">
             Double-click the map to add a {map.kind === 'world' ? 'city' : 'marker'} · drag to move · click to edit
