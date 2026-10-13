@@ -9,7 +9,7 @@ Deadline **12 Nov 2026**, ~20–22 dev hours total. Source of truth for scope an
 - react-konva for the map canvas (pan/zoom, draggable markers)
 - Dexie (IndexedDB) + `dexie-react-hooks`; map images stored as Blobs
 - Plain CSS. No router, no state library (React state + `useLiveQuery`)
-- Later: static deploy (GitHub Pages / Netlify free tier)
+- Hosted on GitHub Pages: https://lipri0705.github.io/dnd-dm-assistant/ (data still stays in each browser)
 
 ## Data model
 - Campaign (single, implicit) → one or more connected worlds (world maps) → cities (marker on a world map, each with its own city map)
@@ -36,6 +36,7 @@ Deadline **12 Nov 2026**, ~20–22 dev hours total. Source of truth for scope an
 - `npm run dev`: dev server
 - `npm run build`: type-check + production build
 - `npm run preview`: serve the build
+- `npm run deploy`: build and publish to GitHub Pages (`gh-pages` branch; needs the `lipri0705` gh login)
 
 ## OUT OF SCOPE (from the charter; do not build)
 - Public release, commercialization, paid subscriptions
