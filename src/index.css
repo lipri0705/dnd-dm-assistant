@@ -25,3 +25,4 @@ body { font-family: system-ui, sans-serif; background: #1e1e24; color: #eee; }
 .panel .segmented button:last-child { border-radius: 0 4px 4px 0; }
 .panel .segmented button.active { background: #5a5a70; border-color: #888; }
 .panel button:disabled { opacity: 0.5; cursor: not-allowed; }
+.warning { color: #f0b84a; font-size: 14px; cursor: help; }

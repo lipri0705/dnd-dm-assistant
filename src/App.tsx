@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { BLANK_SIZE, db, getMap } from './db'
 import MapCanvas from './components/MapCanvas'
 import MarkerPanel from './components/MarkerPanel'
+
+const LARGE_IMAGE_BYTES = 10 * 1024 * 1024
 
 // Sets the background of the world map (cityId = null) or of a city's map, creating the map if needed.
 // Replacing a background keeps the markers (coords are relative).
@@ -27,6 +29,11 @@ export default function App() {
   // null = world map is shown, otherwise the id of the open city's marker
   const [cityId, setCityId] = useState<number | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  // Ask Chrome not to evict our data under storage pressure. false = request denied.
+  const [persistent, setPersistent] = useState<boolean>()
+  useEffect(() => {
+    navigator.storage?.persist?.().then(setPersistent, () => setPersistent(false))
+  }, [])
 
   // null = no map yet, undefined = still loading
   const map = useLiveQuery(() => getMap(cityId), [cityId])
@@ -45,7 +52,10 @@ export default function App() {
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
-    if (file) saveBackground(cityId, file).catch((err) => alert(`Could not load image: ${err}`))
+    if (!file) return
+    const mb = (file.size / 1024 / 1024).toFixed(1)
+    if (file.size > LARGE_IMAGE_BYTES && !confirm(`This image is ${mb} MB. Large maps load slowly. Use it anyway?`)) return
+    saveBackground(cityId, file).catch((err) => alert(`Could not load image: ${err}`))
   }
 
   const placeName = cityId === null ? 'the world' : city?.label || 'this city'
@@ -67,6 +77,11 @@ export default function App() {
           <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={onFile} />
         </label>
         <button onClick={() => saveBackground(cityId)}>Blank canvas</button>
+        {persistent === false && (
+          <span className="warning" title="Chrome may delete saved maps and records if the disk runs low on space.">
+            ⚠ Storage not persistent
+          </span>
+        )}
         {map && (
           <span className="hint">
             Double-click the map to add a {map.kind === 'world' ? 'city' : 'marker'} · drag to move · click to edit
