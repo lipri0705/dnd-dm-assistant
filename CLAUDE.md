@@ -12,10 +12,10 @@ Deadline **12 Nov 2026**, ~20–22 dev hours total. Source of truth for scope an
 - Later: static deploy (GitHub Pages / Netlify free tier)
 
 ## Data model
-- Campaign (single, implicit) → world map → cities (marker on world map, each with its own city map)
+- Campaign (single, implicit) → one or more connected worlds (world maps) → cities (marker on a world map, each with its own city map)
 - City map: uploaded PNG (Blob) or blank canvas → building and character markers
 - Building: name, type, short description, position
-- Character: name, type/role, short description, location (a city map or the world map when travelling) + position
+- Character: name, type/role, short description, location (a city map, or a world map when travelling; can move between worlds) + position
 - Building count per city is **derived**, never stored
 - Positions are relative to image size (`x`, `y` in 0–1), never pixels
 

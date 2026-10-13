@@ -7,7 +7,7 @@ Date: ____  Chrome version: ____  Tester: ____
 
 ## Setup
 Build a small campaign first:
-- World map from a PNG, 3 cities.
+- World map from a PNG, 3 cities; a second world (blank canvas) with 1 city.
 - City 1: PNG map, 3 buildings and 2 characters, every field filled (name, type/role, description).
 - City 2: blank canvas, 1 building.
 - 1 character travelling on the world map.
@@ -24,6 +24,7 @@ Build a small campaign first:
 | 6 | Move a character City 1 → world → City 2, then reload | Character is on City 2 at the same relative position | |
 | 7 | Replace City 1's PNG with a different-size image, then reload | Markers keep their relative positions | |
 | 8 | Delete City 2, then reload | City 2 and its map are gone; other cities untouched | |
+| 8a | Move a character to the second world (travelling), switch worlds, reload | Character is on the second world map; the app reopens on the last world | |
 | 9 | DevTools console: `await navigator.storage.persisted()` | Informational only: `true` = Chrome protects the data from eviction; `false` is normal for a new/localhost site | |
 | 10 | DevTools → Application → IndexedDB → `dnd-dm` | `maps` holds Blobs, `markers` has x/y between 0 and 1 | |
 | 11 | Export → a `dnd-campaign-<date>.json` file downloads | File size roughly matches the images used | |

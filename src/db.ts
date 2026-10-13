@@ -44,38 +44,44 @@ db.version(2)
     await tx.table('markers').toCollection().modify({ kind: 'city' })
   })
 
-// null = no map yet. A city map belongs to a city marker; the world map has no cityId.
-export function getMap(cityId: number | null) {
-  const query =
-    cityId === null ? db.maps.where('kind').equals('world') : db.maps.where('cityId').equals(cityId)
-  return query.first().then((m) => m ?? null)
+// A campaign has one or more connected worlds (world maps). Each city has at most one city map.
+export function listWorlds() {
+  return db.maps.where('kind').equals('world').sortBy('id')
+}
+
+// null = the city has no map yet.
+export function getCityMap(cityId: number) {
+  return db.maps.where('cityId').equals(cityId).first().then((m) => m ?? null)
+}
+
+async function deleteCityMap(cityId: number) {
+  const map = await getCityMap(cityId)
+  if (!map) return
+  await db.markers.where('mapId').equals(map.id).delete()
+  await db.maps.delete(map.id)
 }
 
 // Deleting a city also deletes its city map and everything on it.
 export function deleteMarker(marker: MarkerRecord) {
   return db.transaction('rw', db.maps, db.markers, async () => {
-    if (marker.kind === 'city') {
-      const cityMaps = await db.maps.where('cityId').equals(marker.id).toArray()
-      for (const m of cityMaps) {
-        await db.markers.where('mapId').equals(m.id).delete()
-        await db.maps.delete(m.id)
-      }
-    }
+    if (marker.kind === 'city') await deleteCityMap(marker.id)
     await db.markers.delete(marker.id)
   })
 }
 
-// Cities = city markers on the world map.
-export async function listCities() {
-  const world = await getMap(null)
-  if (!world) return []
-  const markers = await db.markers.where('mapId').equals(world.id).toArray()
-  return markers.filter((m) => m.kind === 'city')
+// Deleting a world deletes its cities (with their maps) and every marker on it.
+export function deleteWorld(worldId: number) {
+  return db.transaction('rw', db.maps, db.markers, async () => {
+    const markers = await db.markers.where('mapId').equals(worldId).toArray()
+    for (const m of markers) if (m.kind === 'city') await deleteCityMap(m.id)
+    await db.markers.where('mapId').equals(worldId).delete()
+    await db.maps.delete(worldId)
+  })
 }
 
 // Derived, never stored: buildings recorded on the city's map.
 export async function countBuildings(cityId: number) {
-  const map = await getMap(cityId)
+  const map = await getCityMap(cityId)
   if (!map) return 0
   return db.markers
     .where('mapId')
@@ -84,17 +90,29 @@ export async function countBuildings(cityId: number) {
     .count()
 }
 
-// Moves a character to a city's map (cityId) or to the world map (null), keeping its relative position.
-// Creates a blank map if the target has none.
-export function moveCharacter(markerId: number, cityId: number | null) {
+// Where a character can be: travelling on a world map, or in a city. Encoded for <select> values.
+export type LocationKey = `world:${number}` | `city:${number}`
+
+// All worlds with their cities, for the character location picker.
+export async function listLocations() {
+  const worlds = await listWorlds()
+  return Promise.all(
+    worlds.map(async (world) => {
+      const markers = await db.markers.where('mapId').equals(world.id).toArray()
+      return { world, cities: markers.filter((m) => m.kind === 'city') }
+    }),
+  )
+}
+
+// Moves a character to another location, keeping its relative position. Creates a blank city map if needed.
+export function moveCharacter(markerId: number, to: LocationKey) {
   return db.transaction('rw', db.maps, db.markers, async () => {
+    const [kind, idText] = to.split(':')
+    const id = Number(idText)
     const mapId =
-      (await getMap(cityId))?.id ??
-      (await db.maps.add(
-        cityId === null
-          ? { kind: 'world', name: 'World', ...BLANK_SIZE }
-          : { kind: 'city', cityId, name: '', ...BLANK_SIZE },
-      ))
+      kind === 'world'
+        ? id
+        : ((await getCityMap(id))?.id ?? (await db.maps.add({ kind: 'city', cityId: id, name: '', ...BLANK_SIZE })))
     await db.markers.update(markerId, { mapId })
   })
 }

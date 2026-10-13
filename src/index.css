@@ -4,7 +4,7 @@ body { font-family: system-ui, sans-serif; background: #1e1e24; color: #eee; }
 
 .app { display: flex; flex-direction: column; height: 100%; }
 .toolbar { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #2a2a33; border-bottom: 1px solid #3a3a45; }
-.toolbar button, .toolbar .button { padding: 6px 12px; border: 1px solid #555; border-radius: 4px; background: #3a3a45; color: #eee; font: inherit; cursor: pointer; }
+.toolbar button, .toolbar .button, .toolbar select { padding: 6px 12px; border: 1px solid #555; border-radius: 4px; background: #3a3a45; color: #eee; font: inherit; cursor: pointer; }
 .toolbar button:hover, .toolbar .button:hover { background: #4a4a57; }
 .stage { flex: 1; position: relative; min-height: 0; }
 .canvas-area { position: absolute; inset: 0; }
@@ -26,3 +26,6 @@ body { font-family: system-ui, sans-serif; background: #1e1e24; color: #eee; }
 .panel .segmented button.active { background: #5a5a70; border-color: #888; }
 .panel button:disabled { opacity: 0.5; cursor: not-allowed; }
 .toolbar-right { order: 1; margin-left: auto; display: flex; gap: 8px; }
+.world-switcher { display: flex; gap: 4px; }
+.world-switcher select { max-width: 200px; }
+.world-switcher button { padding: 6px 9px; }

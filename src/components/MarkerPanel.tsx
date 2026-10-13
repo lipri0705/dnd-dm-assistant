@@ -1,10 +1,19 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { countBuildings, db, deleteMarker, getMap, listCities, moveCharacter, type MarkerRecord } from '../db'
+import {
+  countBuildings,
+  db,
+  deleteMarker,
+  getCityMap,
+  listLocations,
+  moveCharacter,
+  type LocationKey,
+  type MarkerRecord,
+} from '../db'
 
 interface Props {
   marker: MarkerRecord
-  currentCityId: number | null // city whose map is open; null on the world map
+  location: LocationKey // map that is open: a world map or a city map
   onClose: () => void
   onOpenCity: (cityId: number) => void
 }
@@ -12,10 +21,9 @@ interface Props {
 type TextField = 'label' | 'type' | 'description'
 
 const KIND_NAMES: Record<MarkerRecord['kind'], string> = { city: 'City', building: 'Building', character: 'Character' }
-const WORLD = 'world' // <select> value for the world map
 
 // Parent keys this by marker id, so local state resets when the selection changes.
-export default function MarkerPanel({ marker, currentCityId, onClose, onOpenCity }: Props) {
+export default function MarkerPanel({ marker, location, onClose, onOpenCity }: Props) {
   // Local state keeps typing smooth; every change is also written to IndexedDB.
   const [fields, setFields] = useState({
     label: marker.label,
@@ -24,10 +32,10 @@ export default function MarkerPanel({ marker, currentCityId, onClose, onOpenCity
   })
   const isCity = marker.kind === 'city'
   const buildingCount = useLiveQuery(() => (isCity ? countBuildings(marker.id) : 0), [marker.id])
-  const cities = useLiveQuery(() => (marker.kind === 'character' ? listCities() : []), [marker.kind])
+  const locations = useLiveQuery(() => (marker.kind === 'character' ? listLocations() : []), [marker.kind])
   // A city with its own map can't become a character, or its map would be orphaned.
-  const hasCityMap = useLiveQuery(() => (isCity ? getMap(marker.id).then(Boolean) : false), [marker.id, isCity])
-  const kinds = currentCityId === null ? (['city', 'character'] as const) : (['building', 'character'] as const)
+  const hasCityMap = useLiveQuery(() => (isCity ? getCityMap(marker.id).then(Boolean) : false), [marker.id, isCity])
+  const kinds = location.startsWith('world:') ? (['city', 'character'] as const) : (['building', 'character'] as const)
 
   const onFieldChange = (field: TextField) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFields((f) => ({ ...f, [field]: e.target.value }))
@@ -35,7 +43,8 @@ export default function MarkerPanel({ marker, currentCityId, onClose, onOpenCity
   }
 
   const onMove = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    await moveCharacter(marker.id, e.target.value === WORLD ? null : Number(e.target.value))
+    if (e.target.value === location) return
+    await moveCharacter(marker.id, e.target.value as LocationKey)
     onClose() // the marker has left this map
   }
 
@@ -87,15 +96,19 @@ export default function MarkerPanel({ marker, currentCityId, onClose, onOpenCity
           <button onClick={() => onOpenCity(marker.id)}>Open city map →</button>
         </>
       )}
-      {marker.kind === 'character' && cities && (
+      {marker.kind === 'character' && locations && (
         <label>
           Location
-          <select value={currentCityId ?? WORLD} onChange={onMove}>
-            <option value={WORLD}>World map (travelling)</option>
-            {cities.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label || 'Unnamed city'}
-              </option>
+          <select value={location} onChange={onMove}>
+            {locations.map(({ world, cities }) => (
+              <optgroup key={world.id} label={world.name || 'Unnamed world'}>
+                <option value={`world:${world.id}`}>Travelling in {world.name || 'this world'}</option>
+                {cities.map((c) => (
+                  <option key={c.id} value={`city:${c.id}`}>
+                    {c.label || 'Unnamed city'}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>
