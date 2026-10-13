@@ -9,6 +9,7 @@ interface Props {
   markers: MarkerRecord[]
   selectedId: number | null
   onSelect: (id: number | null) => void
+  onOpenCity: (cityId: number) => void
 }
 
 interface View {
@@ -52,7 +53,7 @@ function fitView(size: { width: number; height: number }, map: MapRecord): View 
   return { scale, x: (size.width - map.width * scale) / 2, y: (size.height - map.height * scale) / 2 }
 }
 
-export default function MapCanvas({ map, markers, selectedId, onSelect }: Props) {
+export default function MapCanvas({ map, markers, selectedId, onSelect, onOpenCity }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const size = useElementSize(containerRef)
   const image = useBlobImage(map.image)
@@ -84,7 +85,9 @@ export default function MapCanvas({ map, markers, selectedId, onSelect }: Props)
     const x = (pointer.x - view.x) / view.scale / map.width
     const y = (pointer.y - view.y) / view.scale / map.height
     if (x < 0 || x > 1 || y < 0 || y > 1) return
-    const id = await db.markers.add({ mapId: map.id, kind: 'building', label: 'New marker', x, y })
+    const kind = map.kind === 'world' ? 'city' : 'building'
+    const label = kind === 'city' ? 'New city' : 'New marker'
+    const id = await db.markers.add({ mapId: map.id, kind, label, x, y })
     onSelect(id)
   }
 
@@ -119,6 +122,7 @@ export default function MapCanvas({ map, markers, selectedId, onSelect }: Props)
                 scale={view.scale}
                 selected={m.id === selectedId}
                 onSelect={() => onSelect(m.id)}
+                onOpen={m.kind === 'city' ? () => onOpenCity(m.id) : undefined}
               />
             ))}
           </Layer>

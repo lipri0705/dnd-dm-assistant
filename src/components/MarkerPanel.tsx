@@ -1,13 +1,14 @@
 import { useState } from 'react'
-import { db, type MarkerRecord } from '../db'
+import { db, deleteMarker, type MarkerRecord } from '../db'
 
 interface Props {
   marker: MarkerRecord
   onClose: () => void
+  onOpenCity: (cityId: number) => void
 }
 
 // Parent keys this by marker id, so local state resets when the selection changes.
-export default function MarkerPanel({ marker, onClose }: Props) {
+export default function MarkerPanel({ marker, onClose, onOpenCity }: Props) {
   // Local state keeps typing smooth; every change is also written to IndexedDB.
   const [label, setLabel] = useState(marker.label)
 
@@ -17,8 +18,9 @@ export default function MarkerPanel({ marker, onClose }: Props) {
   }
 
   const onDelete = async () => {
-    if (!confirm(`Delete "${label || 'marker'}"?`)) return
-    await db.markers.delete(marker.id)
+    const extra = marker.kind === 'city' ? ' Its city map and all markers on it will be deleted too.' : ''
+    if (!confirm(`Delete "${label || 'marker'}"?${extra}`)) return
+    await deleteMarker(marker)
     onClose()
   }
 
@@ -34,6 +36,7 @@ export default function MarkerPanel({ marker, onClose }: Props) {
           onKeyDown={(e) => (e.key === 'Enter' || e.key === 'Escape') && onClose()}
         />
       </label>
+      {marker.kind === 'city' && <button onClick={() => onOpenCity(marker.id)}>Open city map →</button>}
       <div className="panel-actions">
         <button onClick={onClose}>Close</button>
         <button className="danger" onClick={onDelete}>

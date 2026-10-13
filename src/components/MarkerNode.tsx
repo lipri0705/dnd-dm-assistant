@@ -9,11 +9,18 @@ interface Props {
   scale: number // current stage scale; markers keep a constant on-screen size
   selected: boolean
   onSelect: () => void
+  onOpen?: () => void // cities: double-click opens the city map
+}
+
+const MARKER_COLORS: Record<MarkerRecord['kind'], string> = {
+  city: '#3f7bd9',
+  building: '#d9534f',
+  character: '#3fae6a',
 }
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 
-export default function MarkerNode({ marker, mapWidth, mapHeight, scale, selected, onSelect }: Props) {
+export default function MarkerNode({ marker, mapWidth, mapHeight, scale, selected, onSelect, onOpen }: Props) {
   // Stop clicks reaching the stage, which would deselect or add a marker.
   const select = (e: KonvaEventObject<MouseEvent>) => {
     e.cancelBubble = true
@@ -37,13 +44,17 @@ export default function MarkerNode({ marker, mapWidth, mapHeight, scale, selecte
       onDragStart={onSelect}
       onDragEnd={onDragEnd}
       onClick={select}
-      onDblClick={select}
+      onDblClick={(e) => {
+        e.cancelBubble = true
+        if (onOpen) onOpen()
+        else onSelect()
+      }}
       onMouseEnter={(e) => (e.target.getStage()!.container().style.cursor = 'move')}
       onMouseLeave={(e) => (e.target.getStage()!.container().style.cursor = '')}
     >
       <Circle
         radius={selected ? 12 : 10}
-        fill="#d9534f"
+        fill={MARKER_COLORS[marker.kind]}
         stroke={selected ? '#ffd54a' : '#fff'}
         strokeWidth={selected ? 4 : 2}
         shadowBlur={4}
