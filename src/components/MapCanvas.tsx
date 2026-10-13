@@ -7,6 +7,8 @@ import MarkerNode from './MarkerNode'
 interface Props {
   map: MapRecord
   markers: MarkerRecord[]
+  selectedId: number | null
+  onSelect: (id: number | null) => void
 }
 
 interface View {
@@ -50,7 +52,7 @@ function fitView(size: { width: number; height: number }, map: MapRecord): View 
   return { scale, x: (size.width - map.width * scale) / 2, y: (size.height - map.height * scale) / 2 }
 }
 
-export default function MapCanvas({ map, markers }: Props) {
+export default function MapCanvas({ map, markers, selectedId, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const size = useElementSize(containerRef)
   const image = useBlobImage(map.image)
@@ -75,15 +77,15 @@ export default function MapCanvas({ map, markers }: Props) {
     if (view) setView({ ...view, x: e.target.x(), y: e.target.y() })
   }
 
-  // M1: one marker only — clicking the map places it if none exists yet.
-  const onStageClick = (e: KonvaEventObject<MouseEvent>) => {
-    if (markers.length > 0 || !view) return
+  // Double-click on empty map space adds a marker and selects it. Marker clicks don't bubble here.
+  const onStageDblClick = async (e: KonvaEventObject<MouseEvent>) => {
     const pointer = e.target.getStage()?.getPointerPosition()
-    if (!pointer) return
+    if (!view || !pointer) return
     const x = (pointer.x - view.x) / view.scale / map.width
     const y = (pointer.y - view.y) / view.scale / map.height
     if (x < 0 || x > 1 || y < 0 || y > 1) return
-    db.markers.add({ mapId: map.id, kind: 'building', label: 'Marker', x, y })
+    const id = await db.markers.add({ mapId: map.id, kind: 'building', label: 'New marker', x, y })
+    onSelect(id)
   }
 
   return (
@@ -99,7 +101,8 @@ export default function MapCanvas({ map, markers }: Props) {
           draggable
           onWheel={onWheel}
           onDragEnd={onStageDragEnd}
-          onClick={onStageClick}
+          onClick={() => onSelect(null)}
+          onDblClick={onStageDblClick}
         >
           <Layer>
             {map.image ? (
@@ -108,7 +111,15 @@ export default function MapCanvas({ map, markers }: Props) {
               <Rect width={map.width} height={map.height} fill="#efe6cf" stroke="#8a7a55" strokeWidth={4} />
             )}
             {markers.map((m) => (
-              <MarkerNode key={m.id} marker={m} mapWidth={map.width} mapHeight={map.height} scale={view.scale} />
+              <MarkerNode
+                key={m.id}
+                marker={m}
+                mapWidth={map.width}
+                mapHeight={map.height}
+                scale={view.scale}
+                selected={m.id === selectedId}
+                onSelect={() => onSelect(m.id)}
+              />
             ))}
           </Layer>
         </Stage>

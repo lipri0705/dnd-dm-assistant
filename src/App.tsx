@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { BLANK_SIZE, db } from './db'
 import MapCanvas from './components/MapCanvas'
+import MarkerPanel from './components/MarkerPanel'
 
 // M1: a single map. Replacing its background keeps the markers (coords are relative).
 async function saveBackground(image?: Blob) {
@@ -25,6 +27,8 @@ export default function App() {
     () => (map ? db.markers.where('mapId').equals(map.id).toArray() : []),
     [map?.id],
   )
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const selected = markers?.find((m) => m.id === selectedId)
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -41,11 +45,22 @@ export default function App() {
           <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={onFile} />
         </label>
         <button onClick={() => saveBackground()}>Blank canvas</button>
-        {map && markers?.length === 0 && <span className="hint">Click the map to place a marker</span>}
+        {map && <span className="hint">Double-click the map to add a marker · drag to move · click to edit</span>}
       </header>
       <main className="stage">
-        {map === null && <p className="hint center">Upload a PNG or start with a blank canvas.</p>}
-        {map && markers && <MapCanvas key={`${map.id}:${map.width}x${map.height}:${map.image?.size ?? 0}`} map={map} markers={markers} />}
+        <div className="canvas-area">
+          {map === null && <p className="hint center">Upload a PNG or start with a blank canvas.</p>}
+          {map && markers && (
+            <MapCanvas
+              key={`${map.id}:${map.width}x${map.height}:${map.image?.size ?? 0}`}
+              map={map}
+              markers={markers}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+            />
+          )}
+        </div>
+        {selected && <MarkerPanel key={selected.id} marker={selected} onClose={() => setSelectedId(null)} />}
       </main>
     </div>
   )
