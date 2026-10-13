@@ -59,6 +59,7 @@ export default function App() {
           <>
             <button onClick={() => openCity(null)}>← World</button>
             <strong>{city?.label || 'City'}</strong>
+            {markers && <span className="hint">{markers.filter((m) => m.kind === 'building').length} buildings</span>}
           </>
         )}
         <label className="button">
@@ -93,6 +94,7 @@ export default function App() {
           <MarkerPanel
             key={selected.id}
             marker={selected}
+            currentCityId={cityId}
             onClose={() => setSelectedId(null)}
             onOpenCity={openCity}
           />

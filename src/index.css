@@ -13,7 +13,14 @@ body { font-family: system-ui, sans-serif; background: #1e1e24; color: #eee; }
 .center { text-align: center; margin-top: 30vh; }
 .panel { position: absolute; top: 0; right: 0; bottom: 0; width: 260px; padding: 12px; background: #2a2a33; border-left: 1px solid #3a3a45; display: flex; flex-direction: column; gap: 12px; }
 .panel label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #aaa; }
-.panel input { padding: 6px 8px; border: 1px solid #555; border-radius: 4px; background: #1e1e24; color: #eee; font: inherit; font-size: 14px; }
+.panel input, .panel textarea, .panel select { padding: 6px 8px; border: 1px solid #555; border-radius: 4px; background: #1e1e24; color: #eee; font: inherit; font-size: 14px; }
 .panel-actions { display: flex; gap: 8px; }
 .panel button { padding: 6px 12px; border: 1px solid #555; border-radius: 4px; background: #3a3a45; color: #eee; font: inherit; cursor: pointer; }
 .panel button.danger { margin-left: auto; border-color: #8a3a3a; background: #5a2a2a; }
+.panel textarea { resize: vertical; }
+.panel-info { margin: 0; font-size: 14px; }
+.segmented { display: flex; }
+.panel .segmented button { flex: 1; border-radius: 0; }
+.panel .segmented button:first-child { border-radius: 4px 0 0 4px; }
+.panel .segmented button:last-child { border-radius: 0 4px 4px 0; }
+.panel .segmented button.active { background: #5a5a70; border-color: #888; }

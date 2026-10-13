@@ -14,7 +14,9 @@ export interface MarkerRecord {
   id: number
   mapId: number
   kind: 'city' | 'building' | 'character'
-  label: string
+  label: string // name
+  type?: string // building type or character role; unused for cities
+  description?: string
   x: number // 0–1, relative to map width
   y: number // 0–1, relative to map height
 }
@@ -60,5 +62,34 @@ export function deleteMarker(marker: MarkerRecord) {
       }
     }
     await db.markers.delete(marker.id)
+  })
+}
+
+// Cities = city markers on the world map.
+export async function listCities() {
+  const world = await getMap(null)
+  if (!world) return []
+  const markers = await db.markers.where('mapId').equals(world.id).toArray()
+  return markers.filter((m) => m.kind === 'city')
+}
+
+// Derived, never stored: buildings recorded on the city's map.
+export async function countBuildings(cityId: number) {
+  const map = await getMap(cityId)
+  if (!map) return 0
+  return db.markers
+    .where('mapId')
+    .equals(map.id)
+    .filter((m) => m.kind === 'building')
+    .count()
+}
+
+// Moves a marker to another city's map, keeping its relative position. Creates a blank map if the city has none.
+export function moveToCity(markerId: number, cityId: number) {
+  return db.transaction('rw', db.maps, db.markers, async () => {
+    const mapId =
+      (await getMap(cityId))?.id ??
+      (await db.maps.add({ kind: 'city', cityId, name: '', ...BLANK_SIZE }))
+    await db.markers.update(markerId, { mapId })
   })
 }
