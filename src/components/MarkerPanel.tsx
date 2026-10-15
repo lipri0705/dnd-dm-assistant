@@ -11,7 +11,7 @@ import {
   type MarkerRecord,
 } from '../db'
 import { ICON_GROUPS, ICON_SIZE } from '../icons'
-import { COLOR_PRESETS, DEFAULT_ICON, markerColor, markerIcon } from '../markerStyle'
+import { COLOR_PRESETS, DEFAULT_ICON, MARKER_SIZE, markerColor, markerIcon, markerSize } from '../markerStyle'
 
 interface Props {
   marker: MarkerRecord
@@ -98,6 +98,17 @@ export default function MarkerPanel({ marker, location, onClose, onOpenCity }: P
       <label>
         Description
         <textarea rows={5} value={fields.description} onChange={onFieldChange('description')} />
+      </label>
+      <label>
+        Size: {markerSize(marker).toFixed(1)}×
+        <input
+          type="range"
+          min={MARKER_SIZE.min}
+          max={MARKER_SIZE.max}
+          step={0.1}
+          value={markerSize(marker)}
+          onChange={(e) => db.markers.update(marker.id, { size: Number(e.target.value) })}
+        />
       </label>
       <div className="panel-section">
         <span className="panel-caption">Color</span>

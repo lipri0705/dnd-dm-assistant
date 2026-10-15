@@ -4,7 +4,7 @@ import { BLANK_SIZE, db, deleteWorld, getCityMap, listWorlds, type LocationKey }
 import { downloadBlob, exportCampaign, importCampaign } from './backup'
 import MapCanvas from './components/MapCanvas'
 import MarkerPanel from './components/MarkerPanel'
-import { DEFAULT_CANVAS_COLOR, MARKER_SCALE, mapMarkerScale } from './markerStyle'
+import { DEFAULT_CANVAS_COLOR } from './markerStyle'
 
 const LARGE_IMAGE_BYTES = 10 * 1024 * 1024
 const LAST_WORLD_KEY = 'dnd-dm:lastWorldId' // per-browser convenience only
@@ -179,19 +179,6 @@ export default function App() {
               type="color"
               value={map.background ?? DEFAULT_CANVAS_COLOR}
               onChange={(e) => db.maps.update(map.id, { background: e.target.value })}
-            />
-          </label>
-        )}
-        {map && (
-          <label className="inline-control" title="Size of all markers on this map">
-            Marker size
-            <input
-              type="range"
-              min={MARKER_SCALE.min}
-              max={MARKER_SCALE.max}
-              step={0.1}
-              value={mapMarkerScale(map)}
-              onChange={(e) => db.maps.update(map.id, { markerScale: Number(e.target.value) })}
             />
           </label>
         )}

@@ -9,7 +9,6 @@ export interface MapRecord {
   width: number // image size in px (or blank canvas size)
   height: number
   background?: string // blank canvas color
-  markerScale?: number // marker size multiplier for this map (1 = default)
 }
 
 export interface MarkerRecord {
@@ -21,6 +20,7 @@ export interface MarkerRecord {
   description?: string
   icon?: string // id from src/icons.ts; default depends on kind
   color?: string // icon color; default depends on kind
+  size?: number // size multiplier (1 = default)
   x: number // 0–1, relative to map width
   y: number // 0–1, relative to map height
 }

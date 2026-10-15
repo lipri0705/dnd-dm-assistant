@@ -2,25 +2,24 @@ import { Circle, Group, Path, Text } from 'react-konva'
 import type { KonvaEventObject } from 'konva/lib/Node'
 import { db, type MarkerRecord } from '../db'
 import { ICON_SIZE } from '../icons'
-import { markerColor, markerIcon } from '../markerStyle'
+import { markerColor, markerIcon, markerSize } from '../markerStyle'
 
 interface Props {
   marker: MarkerRecord
   mapWidth: number
   mapHeight: number
   scale: number // current stage scale; markers keep a constant on-screen size
-  markerScale: number // per-map size multiplier
   selected: boolean
   onSelect: () => void
   onOpen?: () => void // cities: double-click opens the city map
 }
 
-const BASE_SIZE = 30 // on-screen icon size in px at markerScale 1
+const BASE_SIZE = 30 // on-screen icon size in px at marker size 1
 const HALO_WIDTH = 56 // white outline, in icon units (512 grid): keeps icons readable on any map
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 
-export default function MarkerNode({ marker, mapWidth, mapHeight, scale, markerScale, selected, onSelect, onOpen }: Props) {
+export default function MarkerNode({ marker, mapWidth, mapHeight, scale, selected, onSelect, onOpen }: Props) {
   // Stop clicks reaching the stage, which would deselect or add a marker.
   const select = (e: KonvaEventObject<MouseEvent>) => {
     e.cancelBubble = true
@@ -34,7 +33,7 @@ export default function MarkerNode({ marker, mapWidth, mapHeight, scale, markerS
     db.markers.update(marker.id, { x, y })
   }
 
-  const size = BASE_SIZE * markerScale
+  const size = BASE_SIZE * markerSize(marker)
   const icon = markerIcon(marker)
   const iconProps = {
     data: icon.path,

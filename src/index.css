@@ -43,6 +43,6 @@ body { font-family: system-ui, sans-serif; background: #1e1e24; color: #eee; }
 .panel button.link { padding: 0; border: none; background: none; color: #8ab4f8; text-align: left; }
 .inline-control { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #ccc; }
 .inline-control input[type='color'] { width: 32px; height: 26px; padding: 0; border: 1px solid #555; border-radius: 4px; background: none; cursor: pointer; }
-.inline-control input[type='range'] { width: 100px; }
 .credits { position: absolute; left: 8px; bottom: 6px; font-size: 11px; color: #888; text-decoration: none; opacity: 0.8; }
 .credits:hover { text-decoration: underline; }
+.panel input[type='range'] { padding: 0; border: none; background: none; }

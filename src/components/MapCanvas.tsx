@@ -3,7 +3,7 @@ import { Image as KonvaImage, Layer, Rect, Stage } from 'react-konva'
 import type { KonvaEventObject } from 'konva/lib/Node'
 import { db, type MapRecord, type MarkerRecord } from '../db'
 import MarkerNode from './MarkerNode'
-import { DEFAULT_CANVAS_COLOR, mapMarkerScale } from '../markerStyle'
+import { DEFAULT_CANVAS_COLOR } from '../markerStyle'
 
 interface Props {
   map: MapRecord
@@ -121,7 +121,6 @@ export default function MapCanvas({ map, markers, selectedId, onSelect, onOpenCi
                 mapWidth={map.width}
                 mapHeight={map.height}
                 scale={view.scale}
-                markerScale={mapMarkerScale(map)}
                 selected={m.id === selectedId}
                 onSelect={() => onSelect(m.id)}
                 onOpen={m.kind === 'city' ? () => onOpenCity(m.id) : undefined}
