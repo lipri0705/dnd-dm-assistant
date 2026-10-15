@@ -8,6 +8,8 @@ export interface MapRecord {
   image?: Blob // undefined = blank canvas
   width: number // image size in px (or blank canvas size)
   height: number
+  background?: string // blank canvas color
+  markerScale?: number // marker size multiplier for this map (1 = default)
 }
 
 export interface MarkerRecord {
@@ -17,6 +19,8 @@ export interface MarkerRecord {
   label: string // name
   type?: string // building type or character role; unused for cities
   description?: string
+  icon?: string // id from src/icons.ts; default depends on kind
+  color?: string // icon color; default depends on kind
   x: number // 0–1, relative to map width
   y: number // 0–1, relative to map height
 }

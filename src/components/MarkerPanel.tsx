@@ -10,6 +10,8 @@ import {
   type LocationKey,
   type MarkerRecord,
 } from '../db'
+import { ICON_GROUPS, ICON_SIZE } from '../icons'
+import { COLOR_PRESETS, DEFAULT_ICON, markerColor, markerIcon } from '../markerStyle'
 
 interface Props {
   marker: MarkerRecord
@@ -19,6 +21,13 @@ interface Props {
 }
 
 type TextField = 'label' | 'type' | 'description'
+
+// Group order in the icon picker: the group matching the marker kind comes first.
+const GROUP_FOR_KIND: Record<MarkerRecord['kind'], string> = {
+  city: 'Places',
+  building: 'Buildings',
+  character: 'Characters',
+}
 
 const KIND_NAMES: Record<MarkerRecord['kind'], string> = { city: 'City', building: 'Building', character: 'Character' }
 
@@ -90,6 +99,55 @@ export default function MarkerPanel({ marker, location, onClose, onOpenCity }: P
         Description
         <textarea rows={5} value={fields.description} onChange={onFieldChange('description')} />
       </label>
+      <div className="panel-section">
+        <span className="panel-caption">Color</span>
+        <div className="swatches">
+          {COLOR_PRESETS.map((c) => (
+            <button
+              key={c}
+              className={`swatch ${markerColor(marker) === c ? 'active' : ''}`}
+              style={{ background: c }}
+              title={c}
+              onClick={() => db.markers.update(marker.id, { color: c })}
+            />
+          ))}
+          <input
+            type="color"
+            value={markerColor(marker)}
+            title="Custom color"
+            onChange={(e) => db.markers.update(marker.id, { color: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="panel-section">
+        <span className="panel-caption">Icon: {markerIcon(marker).label}</span>
+        {[...ICON_GROUPS]
+          .sort((a, b) => Number(b.title === GROUP_FOR_KIND[marker.kind]) - Number(a.title === GROUP_FOR_KIND[marker.kind]))
+          .map((group) => (
+            <div key={group.title}>
+              <span className="icon-group-title">{group.title}</span>
+              <div className="icon-grid">
+                {group.icons.map((icon) => (
+                  <button
+                    key={icon.id}
+                    className={markerIcon(marker).id === icon.id ? 'active' : ''}
+                    title={icon.label}
+                    onClick={() => db.markers.update(marker.id, { icon: icon.id })}
+                  >
+                    <svg viewBox={`0 0 ${ICON_SIZE} ${ICON_SIZE}`}>
+                      <path d={icon.path} fill={markerColor(marker)} />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        {marker.icon && marker.icon !== DEFAULT_ICON[marker.kind] && (
+          <button className="link" onClick={() => db.markers.update(marker.id, { icon: undefined })}>
+            Reset to default icon
+          </button>
+        )}
+      </div>
       {isCity && (
         <>
           <p className="panel-info">Buildings: {buildingCount ?? '…'}</p>

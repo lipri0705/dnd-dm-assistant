@@ -11,7 +11,7 @@ body { font-family: system-ui, sans-serif; background: #1e1e24; color: #eee; }
 .canvas-container { position: absolute; inset: 0; }
 .hint { color: #aaa; font-size: 14px; }
 .center { text-align: center; margin-top: 30vh; }
-.panel { position: absolute; top: 0; right: 0; bottom: 0; width: 260px; padding: 12px; background: #2a2a33; border-left: 1px solid #3a3a45; display: flex; flex-direction: column; gap: 12px; }
+.panel { position: absolute; top: 0; right: 0; bottom: 0; width: 280px; overflow-y: auto; padding: 12px; background: #2a2a33; border-left: 1px solid #3a3a45; display: flex; flex-direction: column; gap: 12px; }
 .panel label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #aaa; }
 .panel input, .panel textarea, .panel select { padding: 6px 8px; border: 1px solid #555; border-radius: 4px; background: #1e1e24; color: #eee; font: inherit; font-size: 14px; }
 .panel-actions { display: flex; gap: 8px; }
@@ -29,3 +29,20 @@ body { font-family: system-ui, sans-serif; background: #1e1e24; color: #eee; }
 .world-switcher { display: flex; gap: 4px; }
 .world-switcher select { max-width: 200px; }
 .world-switcher button { padding: 6px 9px; }
+.panel-section { display: flex; flex-direction: column; gap: 6px; }
+.panel-caption { font-size: 13px; color: #aaa; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.panel .swatch { width: 22px; height: 22px; padding: 0; border-radius: 50%; border: 2px solid #555; }
+.panel .swatch.active { border-color: #ffd54a; }
+.swatches input[type='color'] { width: 28px; height: 24px; padding: 0; border: none; background: none; cursor: pointer; }
+.icon-group-title { display: block; margin: 4px 0; font-size: 12px; color: #888; }
+.icon-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.panel .icon-grid button { padding: 4px; aspect-ratio: 1; background: #1e1e24; }
+.panel .icon-grid button.active { border-color: #ffd54a; background: #3a3a45; }
+.icon-grid svg { width: 100%; height: 100%; display: block; }
+.panel button.link { padding: 0; border: none; background: none; color: #8ab4f8; text-align: left; }
+.inline-control { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #ccc; }
+.inline-control input[type='color'] { width: 32px; height: 26px; padding: 0; border: 1px solid #555; border-radius: 4px; background: none; cursor: pointer; }
+.inline-control input[type='range'] { width: 100px; }
+.credits { position: absolute; left: 8px; bottom: 6px; font-size: 11px; color: #888; text-decoration: none; opacity: 0.8; }
+.credits:hover { text-decoration: underline; }

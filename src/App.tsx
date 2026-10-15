@@ -4,6 +4,7 @@ import { BLANK_SIZE, db, deleteWorld, getCityMap, listWorlds, type LocationKey }
 import { downloadBlob, exportCampaign, importCampaign } from './backup'
 import MapCanvas from './components/MapCanvas'
 import MarkerPanel from './components/MarkerPanel'
+import { DEFAULT_CANVAS_COLOR, MARKER_SCALE, mapMarkerScale } from './markerStyle'
 
 const LARGE_IMAGE_BYTES = 10 * 1024 * 1024
 const LAST_WORLD_KEY = 'dnd-dm:lastWorldId' // per-browser convenience only
@@ -171,6 +172,29 @@ export default function App() {
           <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={onFile} />
         </label>
         <button onClick={() => saveBackground(worldId, cityId)}>Blank canvas</button>
+        {map && !map.image && (
+          <label className="inline-control" title="Color of this blank canvas">
+            Canvas
+            <input
+              type="color"
+              value={map.background ?? DEFAULT_CANVAS_COLOR}
+              onChange={(e) => db.maps.update(map.id, { background: e.target.value })}
+            />
+          </label>
+        )}
+        {map && (
+          <label className="inline-control" title="Size of all markers on this map">
+            Marker size
+            <input
+              type="range"
+              min={MARKER_SCALE.min}
+              max={MARKER_SCALE.max}
+              step={0.1}
+              value={mapMarkerScale(map)}
+              onChange={(e) => db.maps.update(map.id, { markerScale: Number(e.target.value) })}
+            />
+          </label>
+        )}
         <span className="toolbar-right">
           <button onClick={onExport} title="Download the whole campaign (all worlds, maps, images, records) as one file">
             Export
@@ -206,6 +230,9 @@ export default function App() {
               onOpenCity={openCity}
             />
           )}
+          <a className="credits" href="https://game-icons.net" target="_blank" rel="noreferrer">
+            Icons: game-icons.net (CC BY 3.0)
+          </a>
         </div>
         {selected && location && (
           <MarkerPanel
