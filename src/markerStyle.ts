@@ -16,7 +16,6 @@ export const DEFAULT_ICON: Record<MarkerRecord['kind'], string> = {
 
 export const COLOR_PRESETS = ['#d9534f', '#f0a030', '#e8d44d', '#3fae6a', '#3f7bd9', '#8a5cd6', '#ffffff', '#222222']
 
-export const DEFAULT_CANVAS_COLOR = '#efe6cf'
 export const MARKER_SIZE = { min: 0.5, max: 3, default: 1 }
 
 export const markerColor = (m: MarkerRecord) => m.color ?? DEFAULT_COLOR[m.kind]

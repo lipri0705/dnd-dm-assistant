@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { BLANK_SIZE, db, deleteWorld, getCityMap, listWorlds, type LocationKey } from './db'
+import {
+  addTile,
+  BLANK_SIZE,
+  createMap,
+  db,
+  DEFAULT_CANVAS_COLOR,
+  deleteWorld,
+  getCityMap,
+  listTiles,
+  listWorlds,
+  type LocationKey,
+} from './db'
 import { downloadBlob, exportCampaign, importCampaign } from './backup'
 import MapCanvas from './components/MapCanvas'
 import MarkerPanel from './components/MarkerPanel'
-import { DEFAULT_CANVAS_COLOR } from './markerStyle'
+import TilePanel from './components/TilePanel'
 
 const LARGE_IMAGE_BYTES = 10 * 1024 * 1024
 const LAST_WORLD_KEY = 'dnd-dm:lastWorldId' // per-browser convenience only
@@ -25,27 +36,19 @@ function rememberWorld(id: number) {
   }
 }
 
-async function imageSize(image?: Blob) {
-  if (!image) return BLANK_SIZE
+async function imageSize(image: Blob) {
   const bitmap = await createImageBitmap(image)
   const size = { width: bitmap.width, height: bitmap.height }
   bitmap.close()
   return size
 }
 
-// Sets the background of a city's map (creating it if needed), or of a world map.
-// With no world yet, creates the first one. Replacing a background keeps the markers (coords are relative).
-async function saveBackground(worldId: number | null, cityId: number | null, image?: Blob) {
-  const size = await imageSize(image)
-  if (cityId !== null) {
-    const existing = await getCityMap(cityId)
-    if (existing) await db.maps.update(existing.id, { image, ...size })
-    else await db.maps.add({ kind: 'city', cityId, name: '', image, ...size })
-  } else if (worldId !== null) {
-    await db.maps.update(worldId, { image, ...size })
-  } else {
-    await db.maps.add({ kind: 'world', name: 'World', image, ...size })
-  }
+// Id of the map being shown, creating it if needed: the city's map, or the first world of a new campaign.
+// Created empty, because the caller adds a tile right away.
+async function ensureMap(worldId: number | null, cityId: number | null) {
+  if (cityId !== null) return (await getCityMap(cityId))?.id ?? db.maps.add({ kind: 'city', cityId, name: '' })
+  if (worldId !== null) return worldId
+  return db.maps.add({ kind: 'world', name: 'World' })
 }
 
 export default function App() {
@@ -58,6 +61,9 @@ export default function App() {
   // null = the world map is shown, otherwise the id of the open city's marker
   const [cityId, setCityId] = useState<number | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  // Edit map mode: arrange tiles instead of working with markers.
+  const [editMode, setEditMode] = useState(false)
+  const [selectedTileId, setSelectedTileId] = useState<number | null>(null)
   // Ask Chrome not to evict our data when the disk is low. Chrome decides silently (no prompt);
   // data stays local either way, so the result isn't shown.
   useEffect(() => {
@@ -74,11 +80,28 @@ export default function App() {
     () => (map ? db.markers.where('mapId').equals(map.id).toArray() : []),
     [map?.id],
   )
+  const tiles = useLiveQuery(() => (map ? listTiles(map.id) : []), [map?.id])
   const selected = markers?.find((m) => m.id === selectedId)
+  const selectedTile = editMode ? tiles?.find((t) => t.id === selectedTileId) : undefined
 
   const openCity = (id: number | null) => {
     setSelectedId(null)
+    setEditMode(false)
+    setSelectedTileId(null)
     setCityId(id)
+  }
+
+  const toggleEditMode = () => {
+    setSelectedId(null)
+    setSelectedTileId(null)
+    setEditMode(!editMode)
+  }
+
+  // New tiles open in edit mode, selected, so they can be dragged into place right away.
+  const showNewTile = (tileId: number) => {
+    setSelectedId(null)
+    setEditMode(true)
+    setSelectedTileId(tileId)
   }
 
   const openWorld = (id: number) => {
@@ -90,7 +113,7 @@ export default function App() {
   const onNewWorld = async () => {
     const name = prompt('Name of the new world:', 'New world')?.trim()
     if (!name) return
-    openWorld(await db.maps.add({ kind: 'world', name, ...BLANK_SIZE }))
+    openWorld(await createMap({ kind: 'world', name }))
   }
 
   const onRenameWorld = () => {
@@ -107,13 +130,28 @@ export default function App() {
     openCity(null)
   }
 
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  // Several images can be picked at once; each becomes a tile to the right of the previous one.
+  const onAddImages = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = [...(e.target.files ?? [])]
     e.target.value = ''
-    if (!file) return
-    const mb = (file.size / 1024 / 1024).toFixed(1)
-    if (file.size > LARGE_IMAGE_BYTES && !confirm(`This image is ${mb} MB. Large maps load slowly. Use it anyway?`)) return
-    saveBackground(worldId, cityId, file).catch((err) => alert(`Could not load image: ${err}`))
+    let lastTileId: number | undefined
+    for (const file of files) {
+      const mb = (file.size / 1024 / 1024).toFixed(1)
+      const tooBig = file.size > LARGE_IMAGE_BYTES
+      if (tooBig && !confirm(`"${file.name}" is ${mb} MB. Large maps load slowly. Use it anyway?`)) continue
+      try {
+        const mapId = await ensureMap(worldId, cityId)
+        lastTileId = await addTile(mapId, { image: file }, await imageSize(file))
+      } catch (err) {
+        alert(`Could not load "${file.name}": ${err}`)
+      }
+    }
+    if (lastTileId !== undefined) showNewTile(lastTileId)
+  }
+
+  const onAddCanvas = async () => {
+    const mapId = await ensureMap(worldId, cityId)
+    showNewTile(await addTile(mapId, { color: DEFAULT_CANVAS_COLOR }, BLANK_SIZE))
   }
 
   const onExport = async () => {
@@ -167,20 +205,17 @@ export default function App() {
             {markers && <span className="hint">{markers.filter((m) => m.kind === 'building').length} buildings</span>}
           </>
         )}
-        <label className="button">
-          Upload PNG
-          <input type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={onFile} />
+        <label className="button" title="Add one or more images as tiles of this map">
+          Add PNG
+          <input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden onChange={onAddImages} />
         </label>
-        <button onClick={() => saveBackground(worldId, cityId)}>Blank canvas</button>
-        {map && !map.image && (
-          <label className="inline-control" title="Color of this blank canvas">
-            Canvas
-            <input
-              type="color"
-              value={map.background ?? DEFAULT_CANVAS_COLOR}
-              onChange={(e) => db.maps.update(map.id, { background: e.target.value })}
-            />
-          </label>
+        <button onClick={onAddCanvas} title="Add a plain color canvas tile">
+          Add canvas
+        </button>
+        {tiles && tiles.length > 0 && (
+          <button className={editMode ? 'active' : ''} onClick={toggleEditMode} title="Arrange, resize and color tiles">
+            {editMode ? 'Done editing' : 'Edit map'}
+          </button>
         )}
         <span className="toolbar-right">
           <button onClick={onExport} title="Download the whole campaign (all worlds, maps, images, records) as one file">
@@ -191,37 +226,50 @@ export default function App() {
             <input type="file" accept="application/json,.json" hidden onChange={onImport} />
           </label>
         </span>
-        {map && (
+        {map && tiles && tiles.length > 0 && (
           <span className="hint">
-            Double-click the map to add a {map.kind === 'world' ? 'city' : 'marker'} · drag to move · click to edit
-            {map.kind === 'world' && ' · double-click a city to open it'}
+            {editMode ? (
+              'Drag tiles to arrange (edges snap together) · drag corners to resize · click a tile for color and order'
+            ) : (
+              <>
+                Double-click the map to add a {map.kind === 'world' ? 'city' : 'marker'} · drag to move · click to edit
+                {map.kind === 'world' && ' · double-click a city to open it'}
+              </>
+            )}
           </span>
         )}
       </header>
       <main className="stage">
         <div className="canvas-area">
-          {map === null && (
+          {(map === null || tiles?.length === 0) && (
             <p className="hint center">
               {worlds?.length === 0
-                ? 'No world yet. Upload a PNG or start with a blank canvas.'
-                : `No map for ${placeName} yet. Upload a PNG or start with a blank canvas.`}
+                ? 'No world yet. Add a PNG or a canvas to start.'
+                : `No map for ${placeName} yet. Add a PNG or a canvas.`}
             </p>
           )}
-          {map && markers && (
+          {map && markers && tiles && tiles.length > 0 && (
             <MapCanvas
-              key={`${map.id}:${map.width}x${map.height}:${map.image?.size ?? 0}`}
+              key={map.id}
               map={map}
+              tiles={tiles}
               markers={markers}
               selectedId={selectedId}
               onSelect={setSelectedId}
               onOpenCity={openCity}
+              editMode={editMode}
+              selectedTileId={selectedTileId}
+              onSelectTile={setSelectedTileId}
             />
           )}
           <a className="credits" href="https://game-icons.net" target="_blank" rel="noreferrer">
             Icons: game-icons.net (CC BY 3.0)
           </a>
         </div>
-        {selected && location && (
+        {selectedTile && tiles && (
+          <TilePanel key={selectedTile.id} tile={selectedTile} tiles={tiles} onClose={() => setSelectedTileId(null)} />
+        )}
+        {!editMode && selected && location && (
           <MarkerPanel
             key={selected.id}
             marker={selected}

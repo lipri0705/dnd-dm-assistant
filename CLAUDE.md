@@ -7,17 +7,18 @@ Deadline **12 Nov 2026**, ~20–22 dev hours total. Source of truth for scope an
 ## Stack
 - Vite + React + TypeScript
 - react-konva for the map canvas (pan/zoom, draggable markers)
-- Dexie (IndexedDB) + `dexie-react-hooks`; map images stored as Blobs
+- Dexie (IndexedDB) + `dexie-react-hooks`; tile images stored as Blobs
 - Plain CSS. No router, no state library (React state + `useLiveQuery`)
 - Hosted on GitHub Pages: https://lipri0705.github.io/dnd-dm-assistant/ (data still stays in each browser)
 
 ## Data model
 - Campaign (single, implicit) → one or more connected worlds (world maps) → cities (marker on a world map, each with its own city map)
-- City map: uploaded PNG (Blob) or blank canvas → building and character markers
+- Every map (world or city) is a board of tiles: uploaded PNGs and color canvases, each with its own position, size and layer order
+- City map → building and character markers
 - Building: name, type, short description, position
 - Character: name, type/role, short description, location (a city map, or a world map when travelling; can move between worlds) + position
 - Building count per city is **derived**, never stored
-- Positions are relative to image size (`x`, `y` in 0–1), never pixels
+- Tiles and markers share one coordinate space: map units (an image tile starts at 1 unit = 1 image px). Since schema v3; before that markers were 0–1 fractions of a single image
 
 ## Folders
 - `src/db.ts`: Dexie schema, types and data helpers

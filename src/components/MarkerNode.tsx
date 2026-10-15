@@ -1,13 +1,12 @@
 import { Circle, Group, Path, Text } from 'react-konva'
 import type { KonvaEventObject } from 'konva/lib/Node'
-import { db, type MarkerRecord } from '../db'
+import { db, type Bounds, type MarkerRecord } from '../db'
 import { ICON_SIZE } from '../icons'
 import { markerColor, markerIcon, markerSize } from '../markerStyle'
 
 interface Props {
   marker: MarkerRecord
-  mapWidth: number
-  mapHeight: number
+  bounds: Bounds // markers are kept within the map's overall extent
   scale: number // current stage scale; markers keep a constant on-screen size
   selected: boolean
   onSelect: () => void
@@ -17,9 +16,9 @@ interface Props {
 const BASE_SIZE = 30 // on-screen icon size in px at marker size 1
 const HALO_WIDTH = 56 // white outline, in icon units (512 grid): keeps icons readable on any map
 
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v))
 
-export default function MarkerNode({ marker, mapWidth, mapHeight, scale, selected, onSelect, onOpen }: Props) {
+export default function MarkerNode({ marker, bounds, scale, selected, onSelect, onOpen }: Props) {
   // Stop clicks reaching the stage, which would deselect or add a marker.
   const select = (e: KonvaEventObject<MouseEvent>) => {
     e.cancelBubble = true
@@ -27,9 +26,9 @@ export default function MarkerNode({ marker, mapWidth, mapHeight, scale, selecte
   }
 
   const onDragEnd = (e: KonvaEventObject<DragEvent>) => {
-    const x = clamp01(e.target.x() / mapWidth)
-    const y = clamp01(e.target.y() / mapHeight)
-    e.target.position({ x: x * mapWidth, y: y * mapHeight })
+    const x = clamp(e.target.x(), bounds.x, bounds.x + bounds.width)
+    const y = clamp(e.target.y(), bounds.y, bounds.y + bounds.height)
+    e.target.position({ x, y })
     db.markers.update(marker.id, { x, y })
   }
 
@@ -45,8 +44,8 @@ export default function MarkerNode({ marker, mapWidth, mapHeight, scale, selecte
 
   return (
     <Group
-      x={marker.x * mapWidth}
-      y={marker.y * mapHeight}
+      x={marker.x}
+      y={marker.y}
       scaleX={1 / scale}
       scaleY={1 / scale}
       draggable
