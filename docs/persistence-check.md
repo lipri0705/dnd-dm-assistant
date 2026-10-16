@@ -23,6 +23,7 @@ Build a small campaign first:
 | 5 | On the world map, select City 1 | Panel shows "Buildings: 3" | |
 | 6 | Move a character City 1 → world → City 2, then reload | Character is on City 2 at the same relative position | |
 | 7 | Edit map: move, resize and recolor tiles, change their order, then reload | Tiles and markers stay exactly where they were left | |
+| 7a | Draw: a few strokes in two colors, erase one, reload | Remaining strokes are exactly where they were drawn | |
 | 8 | Delete City 2, then reload | City 2 and its map are gone; other cities untouched | |
 | 8a | Move a character to the second world (travelling), switch worlds, reload | Character is on the second world map; the app reopens on the last world | |
 | 9 | DevTools console: `await navigator.storage.persisted()` | Informational only: `true` = Chrome protects the data from eviction; `false` is normal for a new/localhost site | |

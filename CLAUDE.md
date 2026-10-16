@@ -14,6 +14,7 @@ Deadline **12 Nov 2026**, ~20–22 dev hours total. Source of truth for scope an
 ## Data model
 - Campaign (single, implicit) → one or more connected worlds (world maps) → cities (marker on a world map, each with its own city map)
 - Every map (world or city) is a board of tiles: uploaded PNGs and color canvases, each with its own position, size and layer order
+- Freehand drawing per map: brush strokes (points in map units, color, width), drawn above tiles and below markers
 - City map → building and character markers
 - Building: name, type, short description, position
 - Character: name, type/role, short description, location (a city map, or a world map when travelling; can move between worlds) + position

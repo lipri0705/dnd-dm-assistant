@@ -8,12 +8,15 @@ import {
   DEFAULT_CANVAS_COLOR,
   deleteWorld,
   getCityMap,
+  listStrokes,
   listTiles,
   listWorlds,
   type LocationKey,
 } from './db'
 import { downloadBlob, exportCampaign, importCampaign } from './backup'
-import MapCanvas from './components/MapCanvas'
+import { DEFAULT_BRUSH, type Brush } from './brush'
+import DrawPanel from './components/DrawPanel'
+import MapCanvas, { type Mode } from './components/MapCanvas'
 import MarkerPanel from './components/MarkerPanel'
 import TilePanel from './components/TilePanel'
 
@@ -61,9 +64,10 @@ export default function App() {
   // null = the world map is shown, otherwise the id of the open city's marker
   const [cityId, setCityId] = useState<number | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
-  // Edit map mode: arrange tiles instead of working with markers.
-  const [editMode, setEditMode] = useState(false)
+  // What clicks and drags on the map do: markers (default), arrange tiles, or draw.
+  const [mode, setMode] = useState<Mode>('markers')
   const [selectedTileId, setSelectedTileId] = useState<number | null>(null)
+  const [brush, setBrush] = useState<Brush>(DEFAULT_BRUSH)
   // Ask Chrome not to evict our data when the disk is low. Chrome decides silently (no prompt);
   // data stays local either way, so the result isn't shown.
   useEffect(() => {
@@ -81,26 +85,28 @@ export default function App() {
     [map?.id],
   )
   const tiles = useLiveQuery(() => (map ? listTiles(map.id) : []), [map?.id])
+  const strokes = useLiveQuery(() => (map ? listStrokes(map.id) : []), [map?.id])
   const selected = markers?.find((m) => m.id === selectedId)
-  const selectedTile = editMode ? tiles?.find((t) => t.id === selectedTileId) : undefined
+  const selectedTile = mode === 'tiles' ? tiles?.find((t) => t.id === selectedTileId) : undefined
 
   const openCity = (id: number | null) => {
     setSelectedId(null)
-    setEditMode(false)
+    setMode('markers')
     setSelectedTileId(null)
     setCityId(id)
   }
 
-  const toggleEditMode = () => {
+  // Clicking the active mode's button goes back to markers.
+  const toggleMode = (next: Mode) => {
     setSelectedId(null)
     setSelectedTileId(null)
-    setEditMode(!editMode)
+    setMode(mode === next ? 'markers' : next)
   }
 
   // New tiles open in edit mode, selected, so they can be dragged into place right away.
   const showNewTile = (tileId: number) => {
     setSelectedId(null)
-    setEditMode(true)
+    setMode('tiles')
     setSelectedTileId(tileId)
   }
 
@@ -213,9 +219,22 @@ export default function App() {
           Add canvas
         </button>
         {tiles && tiles.length > 0 && (
-          <button className={editMode ? 'active' : ''} onClick={toggleEditMode} title="Arrange, resize and color tiles">
-            {editMode ? 'Done editing' : 'Edit map'}
-          </button>
+          <>
+            <button
+              className={mode === 'tiles' ? 'active' : ''}
+              onClick={() => toggleMode('tiles')}
+              title="Arrange, resize and color tiles"
+            >
+              {mode === 'tiles' ? 'Done editing' : 'Edit map'}
+            </button>
+            <button
+              className={mode === 'draw' ? 'active' : ''}
+              onClick={() => toggleMode('draw')}
+              title="Draw roads, rivers, borders… on the map"
+            >
+              {mode === 'draw' ? 'Done drawing' : 'Draw'}
+            </button>
+          </>
         )}
         <span className="toolbar-right">
           <button onClick={onExport} title="Download the whole campaign (all worlds, maps, images, records) as one file">
@@ -228,8 +247,10 @@ export default function App() {
         </span>
         {map && tiles && tiles.length > 0 && (
           <span className="hint">
-            {editMode ? (
+            {mode === 'tiles' ? (
               'Drag tiles to arrange (edges snap together) · drag corners to resize · click a tile for color and order'
+            ) : mode === 'draw' ? (
+              'Drag to draw · hold Space and drag to move the map'
             ) : (
               <>
                 Double-click the map to add a {map.kind === 'world' ? 'city' : 'marker'} · drag to move · click to edit
@@ -248,16 +269,18 @@ export default function App() {
                 : `No map for ${placeName} yet. Add a PNG or a canvas.`}
             </p>
           )}
-          {map && markers && tiles && tiles.length > 0 && (
+          {map && markers && tiles && strokes && tiles.length > 0 && (
             <MapCanvas
               key={map.id}
               map={map}
               tiles={tiles}
+              strokes={strokes}
               markers={markers}
               selectedId={selectedId}
               onSelect={setSelectedId}
               onOpenCity={openCity}
-              editMode={editMode}
+              mode={mode}
+              brush={brush}
               selectedTileId={selectedTileId}
               onSelectTile={setSelectedTileId}
             />
@@ -269,7 +292,10 @@ export default function App() {
         {selectedTile && tiles && (
           <TilePanel key={selectedTile.id} tile={selectedTile} tiles={tiles} onClose={() => setSelectedTileId(null)} />
         )}
-        {!editMode && selected && location && (
+        {mode === 'draw' && strokes && (
+          <DrawPanel brush={brush} onBrushChange={setBrush} strokes={strokes} onClose={() => toggleMode('draw')} />
+        )}
+        {mode === 'markers' && selected && location && (
           <MarkerPanel
             key={selected.id}
             marker={selected}

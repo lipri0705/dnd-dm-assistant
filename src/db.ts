@@ -20,6 +20,15 @@ export interface TileRecord {
   z: number // draw order, higher = on top
 }
 
+// Freehand drawing on a map: one brush stroke, drawn above tiles and below markers.
+export interface StrokeRecord {
+  id: number
+  mapId: number
+  points: number[] // x1, y1, x2, y2, … in map units
+  color: string
+  width: number // in map units
+}
+
 export interface MarkerRecord {
   id: number
   mapId: number
@@ -43,6 +52,7 @@ export const DEFAULT_CANVAS_COLOR = '#efe6cf'
 export const db = new Dexie('dnd-dm') as Dexie & {
   maps: EntityTable<MapRecord, 'id'>
   tiles: EntityTable<TileRecord, 'id'>
+  strokes: EntityTable<StrokeRecord, 'id'>
   markers: EntityTable<MarkerRecord, 'id'>
 }
 
@@ -76,6 +86,14 @@ db.version(3)
     await tx.table('tiles').bulkAdd(converted.tiles)
     await tx.table('markers').bulkPut(converted.markers)
   })
+
+// v4: freehand drawings (new table only, no data changes).
+db.version(4).stores({
+  maps: '++id, kind, cityId',
+  tiles: '++id, mapId',
+  strokes: '++id, mapId',
+  markers: '++id, mapId',
+})
 
 // Shared by the v3 migration and by importing old (version 1) backup files.
 export function convertLegacy(maps: LegacyMap[], markers: MarkerRecord[]) {
@@ -117,6 +135,10 @@ export function tileBounds(tiles: Pick<TileRecord, 'x' | 'y' | 'width' | 'height
   const right = Math.max(...tiles.map((t) => t.x + t.width))
   const bottom = Math.max(...tiles.map((t) => t.y + t.height))
   return { x: left, y: top, width: right - left, height: bottom - top }
+}
+
+export function listStrokes(mapId: number) {
+  return db.strokes.where('mapId').equals(mapId).sortBy('id')
 }
 
 export function listTiles(mapId: number) {
@@ -163,6 +185,7 @@ export function getCityMap(cityId: number) {
 async function deleteMapContents(mapId: number) {
   await db.markers.where('mapId').equals(mapId).delete()
   await db.tiles.where('mapId').equals(mapId).delete()
+  await db.strokes.where('mapId').equals(mapId).delete()
   await db.maps.delete(mapId)
 }
 
@@ -173,15 +196,15 @@ async function deleteCityMap(cityId: number) {
 
 // Deleting a city also deletes its city map and everything on it.
 export function deleteMarker(marker: MarkerRecord) {
-  return db.transaction('rw', db.maps, db.tiles, db.markers, async () => {
+  return db.transaction('rw', db.maps, db.tiles, db.strokes, db.markers, async () => {
     if (marker.kind === 'city') await deleteCityMap(marker.id)
     await db.markers.delete(marker.id)
   })
 }
 
-// Deleting a world deletes its cities (with their maps), its tiles and every marker on it.
+// Deleting a world deletes its cities (with their maps), its tiles, drawings and every marker on it.
 export function deleteWorld(worldId: number) {
-  return db.transaction('rw', db.maps, db.tiles, db.markers, async () => {
+  return db.transaction('rw', db.maps, db.tiles, db.strokes, db.markers, async () => {
     const markers = await db.markers.where('mapId').equals(worldId).toArray()
     for (const m of markers) if (m.kind === 'city') await deleteCityMap(m.id)
     await deleteMapContents(worldId)
